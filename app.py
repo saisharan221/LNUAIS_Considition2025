@@ -1,4 +1,5 @@
 import sys
+import os
 import time
 from client import ConsiditionClient
 
@@ -14,10 +15,17 @@ def generate_tick(map_obj, current_tick):
         "customerRecommendations": generate_customer_recommendations(map_obj, current_tick),
     }
 
+def _require_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value or not value.strip():
+        print(f"Missing required environment variable: {name}")
+        sys.exit(1)
+    return value.strip()
+
 def main():
-    api_key = "INSERT API KEY HERE"
-    base_url = "INSERT YOUR CHOSEN PORT HERE"
-    map_name = "INSERT MAP NAME HERE"
+    api_key = _require_env("API_KEY")
+    base_url = _require_env("BASE_URL")
+    map_name = _require_env("MAP_NAME")
 
     client = ConsiditionClient(base_url, api_key)
 
