@@ -1,9 +1,15 @@
 """
 Considition 2025 Algorithm
 --------------------------
-This module implements the core algorithm for managing electric vehicles,
-customers, and charging decisions.
+Electric Vehicle Charging Recommendation System
+
+This module recommends optimal charging strategies for customers traveling
+in electric vehicles, considering battery levels, charging station
+availability, route optimization, and energy source preferences.
 """
+
+import heapq
+
 
 class ConsiditionAlgorithm:
     def __init__(self, map_obj):
@@ -14,29 +20,66 @@ class ConsiditionAlgorithm:
             map_obj: The map object containing all game state information
         """
         self.map_obj = map_obj
+        self.graph = {}
+        self.nodes = {}
+        self.charging_stations = {}
+        self.zones = {}
+        self.customers = []
+        
         self.initialize_game_state()
     
     def initialize_game_state(self):
         """Extract and initialize game state from map object."""
-        # TODO: Extract EVs, charging stations, customers, locations
-        self.evs = self.map_obj.get("evs", [])
-        self.charging_stations = self.map_obj.get("chargingStations", [])
-        self.customers = self.map_obj.get("customers", [])
-        self.locations = self.map_obj.get("locations", [])
+        # Build graph from nodes and edges
+        nodes_list = self.map_obj.get("nodes", [])
+        edges_list = self.map_obj.get("edges", [])
+        zones_list = self.map_obj.get("zones", [])
         
-        # Track EV states
-        self.ev_states = {}
-        for ev in self.evs:
-            self.ev_states[ev.get("id")] = {
-                "current_location": ev.get("startLocation"),
-                "battery": ev.get("batteryCapacity", 100),
-                "assigned_customer": None,
-                "route": []
+        # Index nodes
+        for node in nodes_list:
+            node_id = node.get("id")
+            self.nodes[node_id] = node
+            self.graph[node_id] = []
+            
+            # Track charging stations
+            target = node.get("target", {})
+            if target.get("Type") == "ChargingStation":
+                self.charging_stations[node_id] = target
+            
+            # Collect all customers
+            customers_at_node = node.get("customers", [])
+            for customer in customers_at_node:
+                customer["homeNode"] = node_id
+                self.customers.append(customer)
+        
+        # Build adjacency list for graph
+        for edge in edges_list:
+            from_node = edge.get("fromNode")
+            to_node = edge.get("toNode")
+            length = edge.get("length")
+            
+            if from_node in self.graph:
+                self.graph[from_node].append({
+                    "to": to_node,
+                    "distance": length
+                })
+        
+        # Index zones
+        for zone in zones_list:
+            zone_id = zone.get("id")
+            self.zones[zone_id] = zone
+        
+        # Track customer states
+        self.customer_states = {}
+        for customer in self.customers:
+            self.customer_states[customer.get("id")] = {
+                "recommended": False,
+                "state": customer.get("state", "Home")
             }
     
     def generate_recommendations(self, current_tick):
         """
-        Generate customer recommendations for the current tick.
+        Generate customer charging recommendations for the current tick.
         
         Args:
             current_tick: The current game tick number
@@ -46,183 +89,464 @@ class ConsiditionAlgorithm:
         """
         recommendations = []
         
-        # TODO: Implement main algorithm logic
-        # 1. Identify available customers
-        available_customers = self.get_available_customers(current_tick)
+        # Get customers departing at or after current tick
+        active_customers = self.get_active_customers(current_tick)
         
-        # 2. Match customers with available EVs
-        for customer in available_customers:
-            best_ev = self.find_best_ev_for_customer(customer, current_tick)
-            if best_ev:
-                recommendation = self.create_recommendation(customer, best_ev, current_tick)
-                recommendations.append(recommendation)
+        for customer in active_customers:
+            # Check if customer needs charging
+            if self.needs_charging(customer, current_tick):
+                recommendation = self.create_charging_recommendation(
+                    customer, current_tick
+                )
+                if recommendation:
+                    recommendations.append(recommendation)
         
         return recommendations
     
-    def get_available_customers(self, current_tick):
+    def get_active_customers(self, current_tick):
         """
-        Get customers that are available at the current tick.
+        Get customers that are active at the current tick.
         
         Args:
             current_tick: The current game tick
             
         Returns:
-            List of available customers
+            List of active customers
         """
-        available = []
-        # TODO: Filter customers based on spawn time and assignment status
+        active = []
         for customer in self.customers:
-            spawn_tick = customer.get("spawnTick", 0)
-            if spawn_tick <= current_tick:
-                # Check if not already assigned
-                if not self.is_customer_assigned(customer):
-                    available.append(customer)
-        return available
+            departure_tick = customer.get("departureTick", 0)
+            customer_id = customer.get("id")
+            
+            # Only recommend for customers departing at the CURRENT tick
+            # (not in the future)
+            if (departure_tick == current_tick and
+                    not self.customer_states[customer_id]["recommended"]):
+                active.append(customer)
+        
+        return active
     
-    def is_customer_assigned(self, customer):
-        """Check if a customer is already assigned to an EV."""
-        customer_id = customer.get("id")
-        for ev_id, state in self.ev_states.items():
-            if state["assigned_customer"] == customer_id:
-                return True
-        return False
-    
-    def find_best_ev_for_customer(self, customer, current_tick):
+    def needs_charging(self, customer, current_tick):
         """
-        Find the best EV to assign to a customer.
+        Determine if a customer needs to charge before their journey.
         
         Args:
             customer: The customer object
             current_tick: The current game tick
             
         Returns:
-            Best EV ID or None
+            Boolean indicating if charging is needed
         """
-        # TODO: Implement EV selection logic
-        # Consider:
-        # - Distance to customer
-        # - Battery level
-        # - Current availability
-        # - Charging needs
+        from_node = customer.get("fromNode")
+        to_node = customer.get("toNode")
+        current_charge_fraction = customer.get("chargeRemaining", 0)
+        max_charge_kwh = customer.get("maxCharge", 50)
+        consumption_per_km = customer.get("energyConsumptionPerKm", 0.2)
         
-        best_ev = None
+        # Calculate current charge in kWh
+        current_charge_kwh = current_charge_fraction * max_charge_kwh
+        
+        # Find shortest path distance
+        distance = self.get_shortest_path_distance(from_node, to_node)
+        
+        if distance is None:
+            # Can't find path, safer to recommend charging
+            return True
+        
+        # Calculate energy needed for journey
+        energy_needed = distance * consumption_per_km
+        
+        # Recommend if they have less than 120% of needed energy
+        # (safety margin of 20%)
+        return current_charge_kwh < (energy_needed * 1.2)
+    
+    def get_shortest_path_distance(self, start_node, end_node):
+        """
+        Calculate shortest path distance using Dijkstra's algorithm.
+        
+        Args:
+            start_node: Starting node ID
+            end_node: Ending node ID
+            
+        Returns:
+            Shortest distance or None if no path exists
+        """
+        if start_node == end_node:
+            return 0
+        
+        if start_node not in self.graph or end_node not in self.graph:
+            return None
+        
+        # Dijkstra's algorithm
+        distances = {node: float('inf') for node in self.graph}
+        distances[start_node] = 0
+        pq = [(0, start_node)]
+        visited = set()
+        
+        while pq:
+            current_dist, current_node = heapq.heappop(pq)
+            
+            if current_node in visited:
+                continue
+            
+            visited.add(current_node)
+            
+            if current_node == end_node:
+                return current_dist
+            
+            for neighbor in self.graph.get(current_node, []):
+                neighbor_node = neighbor["to"]
+                edge_dist = neighbor["distance"]
+                new_dist = current_dist + edge_dist
+                
+                if new_dist < distances[neighbor_node]:
+                    distances[neighbor_node] = new_dist
+                    heapq.heappush(pq, (new_dist, neighbor_node))
+        
+        return None if distances[end_node] == float('inf') else distances[
+            end_node
+        ]
+    
+    def find_best_charging_station(self, customer, current_tick):
+        """
+        Find the best charging station for a customer.
+        
+        Args:
+            customer: The customer object
+            current_tick: The current game tick
+            
+        Returns:
+            Best charging station node ID or None
+        """
+        from_node = customer.get("fromNode")
+        to_node = customer.get("toNode")
+        persona = customer.get("persona", "Neutral")
+        
+        best_station = None
         best_score = float('inf')
         
-        for ev_id, state in self.ev_states.items():
-            if state["assigned_customer"] is None:
-                # Calculate suitability score
-                score = self.calculate_ev_suitability(ev_id, customer, current_tick)
-                if score < best_score:
-                    best_score = score
-                    best_ev = ev_id
+        for station_id, station_info in self.charging_stations.items():
+            # Check if station has available chargers
+            available = station_info.get("amountOfAvailableChargers", 0)
+            if available <= 0:
+                continue
+            
+            # Calculate detour distance
+            dist_from_start = self.get_shortest_path_distance(
+                from_node, station_id
+            )
+            dist_to_destination = self.get_shortest_path_distance(
+                station_id, to_node
+            )
+            
+            if dist_from_start is None or dist_to_destination is None:
+                continue
+            
+            direct_distance = self.get_shortest_path_distance(
+                from_node, to_node
+            )
+            if direct_distance is None:
+                direct_distance = dist_from_start + dist_to_destination
+            
+            detour = (dist_from_start + dist_to_destination) - direct_distance
+            
+            # Calculate score based on persona
+            score = self.calculate_station_score(
+                station_id,
+                station_info,
+                detour,
+                persona
+            )
+            
+            if score < best_score:
+                best_score = score
+                best_station = station_id
         
-        return best_ev
+        return best_station
     
-    def calculate_ev_suitability(self, ev_id, customer, current_tick):
+    def calculate_station_score(
+            self, station_id, station_info, detour, persona):
         """
-        Calculate how suitable an EV is for a customer.
-        Lower score is better.
+        Calculate a score for a charging station based on customer persona.
         
         Args:
-            ev_id: The EV identifier
+            station_id: The station node ID
+            station_info: Station information
+            detour: Extra distance to reach this station
+            persona: Customer persona
+            
+        Returns:
+            Score (lower is better)
+        """
+        charge_speed = station_info.get("chargeSpeedPerCharger", 100)
+        
+        # Get zone for energy source info
+        station_node = self.nodes.get(station_id, {})
+        zone_id = station_node.get("zoneId")
+        zone = self.zones.get(zone_id, {})
+        
+        # Check if zone has green energy
+        has_green_energy = self.zone_has_green_energy(zone)
+        
+        # Base score is detour distance
+        score = detour
+        
+        # Adjust based on persona
+        if persona == "Stressed" or persona == "DislikesDriving":
+            # Minimize time and detour
+            score += detour * 2  # Heavily penalize detours
+            score -= charge_speed * 0.1  # Favor fast charging
+        
+        elif persona == "CostSensitive":
+            # Favor cheaper options (green energy might be cheaper)
+            if has_green_energy:
+                score -= 50
+            score += detour * 0.5  # Moderate detour penalty
+        
+        elif persona == "EcoConscious":
+            # Strongly favor green energy
+            if has_green_energy:
+                score -= 100
+            else:
+                score += 100  # Penalize non-green
+            score += detour * 0.3  # Lower detour penalty
+        
+        else:  # Neutral
+            # Balanced approach
+            if has_green_energy:
+                score -= 20
+            score += detour * 1.0
+        
+        return score
+    
+    def zone_has_green_energy(self, zone):
+        """
+        Check if a zone has green energy sources.
+        
+        Args:
+            zone: Zone object
+            
+        Returns:
+            Boolean indicating if zone has green energy
+        """
+        green_sources = {"Hydro", "Nuclear", "Wind", "Solar"}
+        energy_sources = zone.get("energySources", [])
+        
+        for source in energy_sources:
+            if source.get("type") in green_sources:
+                return True
+        
+        return False
+    
+    def calculate_charging_amount(self, customer, station_id):
+        """
+        Calculate how much charge a customer needs.
+        
+        Args:
+            customer: The customer object
+            station_id: The charging station node ID
+            
+        Returns:
+            Charging amount in kWh
+        """
+        from_node = customer.get("fromNode")
+        to_node = customer.get("toNode")
+        current_charge_fraction = customer.get("chargeRemaining", 0)
+        max_charge_kwh = customer.get("maxCharge", 50)
+        consumption_per_km = customer.get("energyConsumptionPerKm", 0.2)
+        
+        # Current charge
+        current_charge_kwh = current_charge_fraction * max_charge_kwh
+        
+        # Calculate total journey distance through charging station
+        dist_to_station = self.get_shortest_path_distance(
+            from_node, station_id
+        )
+        dist_from_station = self.get_shortest_path_distance(
+            station_id, to_node
+        )
+        
+        if dist_to_station is None or dist_from_station is None:
+            # Default to full charge if path calculation fails
+            return max_charge_kwh - current_charge_kwh
+        
+        # Energy needed to reach station
+        energy_to_station = dist_to_station * consumption_per_km
+        
+        # Charge remaining when reaching station
+        charge_at_station = current_charge_kwh - energy_to_station
+        
+        # Charge needed (with 10% safety margin)
+        energy_needed_from_station = dist_from_station * consumption_per_km
+        target_charge = energy_needed_from_station * 1.1
+        
+        # Amount to charge
+        charge_amount = max(0, target_charge - charge_at_station)
+        
+        # Don't exceed battery capacity
+        # charge_at_station might be negative if we can't reach station
+        if charge_at_station < 0:
+            # Can't reach the station with current charge
+            charge_amount = max_charge_kwh
+        else:
+            max_possible_charge = max_charge_kwh - charge_at_station
+            charge_amount = min(charge_amount, max_possible_charge)
+        
+        # Final safety check: never exceed battery capacity
+        charge_amount = min(charge_amount, max_charge_kwh)
+        
+        return charge_amount
+    
+    def get_path_nodes(self, start_node, end_node):
+        """
+        Get the list of nodes in the shortest path.
+        
+        Args:
+            start_node: Starting node ID
+            end_node: Ending node ID
+            
+        Returns:
+            List of node IDs in the path
+        """
+        if start_node == end_node:
+            return [start_node]
+        
+        if start_node not in self.graph or end_node not in self.graph:
+            return []
+        
+        # Modified Dijkstra's to track path
+        distances = {node: float('inf') for node in self.graph}
+        distances[start_node] = 0
+        previous = {node: None for node in self.graph}
+        pq = [(0, start_node)]
+        visited = set()
+        
+        while pq:
+            current_dist, current_node = heapq.heappop(pq)
+            
+            if current_node in visited:
+                continue
+            
+            visited.add(current_node)
+            
+            if current_node == end_node:
+                break
+            
+            for neighbor in self.graph.get(current_node, []):
+                neighbor_node = neighbor["to"]
+                edge_dist = neighbor["distance"]
+                new_dist = current_dist + edge_dist
+                
+                if new_dist < distances[neighbor_node]:
+                    distances[neighbor_node] = new_dist
+                    previous[neighbor_node] = current_node
+                    heapq.heappush(pq, (new_dist, neighbor_node))
+        
+        # Reconstruct path
+        if distances[end_node] == float('inf'):
+            return []
+        
+        path = []
+        current = end_node
+        while current is not None:
+            path.append(current)
+            current = previous[current]
+        
+        path.reverse()
+        return path
+    
+    def create_charging_recommendation(self, customer, current_tick):
+        """
+        Create a charging recommendation for a customer.
+        
+        Args:
             customer: The customer object
             current_tick: The current game tick
             
         Returns:
-            Suitability score (lower is better)
-        """
-        state = self.ev_states[ev_id]
-        
-        # TODO: Implement proper distance calculation
-        # For now, use a simple heuristic
-        pickup_location = customer.get("pickupLocation")
-        current_location = state["current_location"]
-        
-        # Distance heuristic (placeholder)
-        distance = self.calculate_distance(current_location, pickup_location)
-        
-        # Battery consideration
-        battery_penalty = 0 if state["battery"] > 50 else 100
-        
-        return distance + battery_penalty
-    
-    def calculate_distance(self, location_a, location_b):
-        """
-        Calculate distance between two locations.
-        
-        Args:
-            location_a: Start location ID
-            location_b: End location ID
-            
-        Returns:
-            Distance value
-        """
-        # TODO: Implement actual distance calculation based on map
-        # This is a placeholder
-        if location_a == location_b:
-            return 0
-        return 10  # Placeholder value
-    
-    def create_recommendation(self, customer, ev_id, current_tick):
-        """
-        Create a customer recommendation object.
-        
-        Args:
-            customer: The customer object
-            ev_id: The EV identifier
-            current_tick: The current game tick
-            
-        Returns:
-            Recommendation dictionary
+            Recommendation dictionary or None
         """
         customer_id = customer.get("id")
+        from_node = customer.get("fromNode")
+        to_node = customer.get("toNode")
         
-        # Update EV state
-        self.ev_states[ev_id]["assigned_customer"] = customer_id
+        # Get customer battery info
+        current_charge_fraction = customer.get("chargeRemaining", 0)
+        max_charge_kwh = customer.get("maxCharge", 50)
+        consumption_per_km = customer.get("energyConsumptionPerKm", 0.2)
+        current_charge_kwh = current_charge_fraction * max_charge_kwh
         
-        # TODO: Calculate optimal route including charging stops
-        route = self.calculate_route(
-            ev_id,
-            customer.get("pickupLocation"),
-            customer.get("destination")
+        # Find best charging station
+        best_station = self.find_best_charging_station(customer,
+                                                       current_tick)
+        
+        if best_station is None:
+            # No suitable charging station found
+            return None
+        
+        # Validate customer can reach the station
+        dist_to_station = self.get_shortest_path_distance(
+            from_node, best_station
         )
+        if dist_to_station is None:
+            return None
+            
+        energy_to_reach = dist_to_station * consumption_per_km
+        if current_charge_kwh < energy_to_reach:
+            # Can't reach station with current charge
+            return None
+        
+        # Calculate charging amount (in kWh)
+        charge_amount = self.calculate_charging_amount(customer,
+                                                       best_station)
+        
+        if charge_amount <= 0:
+            return None
+        
+        # Mark customer as recommended
+        self.customer_states[customer_id]["recommended"] = True
+        
+        # Create recommendation
+        # CORRECT FORMAT from documentation:
+        # chargingRecommendations is an ARRAY of charging stops
+        
+        # Calculate optimal charge level
+        dist_from_station = self.get_shortest_path_distance(
+            best_station, to_node
+        ) or 0
+        
+        energy_to_station = dist_to_station * consumption_per_km
+        charge_at_station = current_charge_kwh - energy_to_station
+        energy_from_station = dist_from_station * consumption_per_km
+        
+        # Target charge with good safety margin (50%)
+        target_charge_kwh = charge_at_station + (energy_from_station * 1.5)
+        
+        # But always charge to at least 90% if stopping
+        # (Stopping to charge has overhead, make it worth it!)
+        min_charge_kwh = max_charge_kwh * 0.90
+        target_charge_kwh = max(min_charge_kwh, target_charge_kwh)
+        
+        # Cap at max battery
+        target_charge_kwh = min(max_charge_kwh, target_charge_kwh)
+        
+        # Convert to percentage (0-1)
+        target_charge_fraction = target_charge_kwh / max_charge_kwh
+        
+        # Ensure between 0.01 and 0.95 (avoid 0 and 1 per docs!)
+        target_charge_fraction = max(0.01, min(0.95, target_charge_fraction))
         
         recommendation = {
             "customerId": customer_id,
-            "evId": ev_id,
-            "route": route
+            "chargingRecommendations": [  # Array of charging stops!
+                {
+                    "nodeId": best_station,  # "nodeId" not "chargingStation"
+                    "chargeTo": round(target_charge_fraction, 3)
+                }
+            ]
         }
         
         return recommendation
-    
-    def calculate_route(self, ev_id, pickup_location, destination):
-        """
-        Calculate the optimal route for an EV to pickup and deliver a customer.
-        
-        Args:
-            ev_id: The EV identifier
-            pickup_location: Customer pickup location
-            destination: Customer destination
-            
-        Returns:
-            List of location IDs forming the route
-        """
-        state = self.ev_states[ev_id]
-        current_location = state["current_location"]
-        
-        # TODO: Implement proper routing algorithm with charging stations
-        # For now, use simple direct route
-        route = []
-        
-        # If not at pickup location, go there first
-        if current_location != pickup_location:
-            route.append(pickup_location)
-        
-        # Then go to destination
-        if pickup_location != destination:
-            route.append(destination)
-        
-        return route
     
     def update_state(self, game_response):
         """
@@ -231,13 +555,11 @@ class ConsiditionAlgorithm:
         Args:
             game_response: Response from the game API
         """
-        # TODO: Update EV states, battery levels, locations based on game response
         updated_map = game_response.get("map")
         if updated_map:
+            # Reinitialize with updated map
             self.map_obj = updated_map
-            # Update EV states from the response
-            # This will be implemented once we know the response structure
-            pass
+            self.initialize_game_state()
 
 
 def generate_customer_recommendations(map_obj, current_tick):
@@ -254,13 +576,19 @@ def generate_customer_recommendations(map_obj, current_tick):
     """
     # Create or update algorithm instance
     if not hasattr(generate_customer_recommendations, 'algorithm'):
-        generate_customer_recommendations.algorithm = ConsiditionAlgorithm(map_obj)
+        generate_customer_recommendations.algorithm = ConsiditionAlgorithm(
+            map_obj
+        )
+    # Don't reinitialize - keep the state!
+    # Just update the map reference
     else:
-        # Update with new map state
         generate_customer_recommendations.algorithm.map_obj = map_obj
     
     # Generate recommendations
-    recommendations = generate_customer_recommendations.algorithm.generate_recommendations(current_tick)
+    recommendations = (
+        generate_customer_recommendations.algorithm.generate_recommendations(
+            current_tick
+        )
+    )
     
     return recommendations
-
