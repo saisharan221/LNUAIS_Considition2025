@@ -35,7 +35,7 @@ def main():
     else:
         print(f"Using Local API: {base_url}")
     
-    map_name = "Batterytown"
+    map_name = "Batterytown"  # Change to test different maps
 
     client = ConsiditionClient(base_url, api_key)
 

@@ -93,13 +93,13 @@ class ConsiditionAlgorithm:
         active_customers = self.get_active_customers(current_tick)
         
         for customer in active_customers:
-            # Check if customer needs charging
-            if self.needs_charging(customer, current_tick):
-                recommendation = self.create_charging_recommendation(
-                    customer, current_tick
-                )
-                if recommendation:
-                    recommendations.append(recommendation)
+            # ULTRA-AGGRESSIVE: Charge EVERYONE (maximize KWH revenue!)
+            # Skip the needs_charging check entirely
+            recommendation = self.create_charging_recommendation(
+                customer, current_tick
+            )
+            if recommendation:
+                recommendations.append(recommendation)
         
         return recommendations
     
@@ -156,9 +156,9 @@ class ConsiditionAlgorithm:
         # Calculate energy needed for journey
         energy_needed = distance * consumption_per_km
         
-        # Recommend if they have less than 120% of needed energy
-        # (safety margin of 20%)
-        return current_charge_kwh < (energy_needed * 1.2)
+        # AGGRESSIVE MODE: Recommend if less than 200% of needed energy
+        # This maximizes KWH revenue by charging more customers!
+        return current_charge_kwh < (energy_needed * 2.0)
     
     def get_shortest_path_distance(self, start_node, end_node):
         """
@@ -210,6 +210,7 @@ class ConsiditionAlgorithm:
     def find_best_charging_station(self, customer, current_tick):
         """
         Find the best charging station for a customer.
+        PRIORITIZES reachable stations!
         
         Args:
             customer: The customer object
@@ -221,6 +222,8 @@ class ConsiditionAlgorithm:
         from_node = customer.get("fromNode")
         to_node = customer.get("toNode")
         persona = customer.get("persona", "Neutral")
+        current_charge_kwh = customer.get("chargeRemaining", 0) * customer.get("maxCharge", 50)
+        consumption = customer.get("energyConsumptionPerKm", 0.2)
         
         best_station = None
         best_score = float('inf')
@@ -231,17 +234,27 @@ class ConsiditionAlgorithm:
             if available <= 0:
                 continue
             
-            # Calculate detour distance
+            # Calculate distance to station
             dist_from_start = self.get_shortest_path_distance(
                 from_node, station_id
             )
+            if dist_from_start is None:
+                continue
+            
+            # CHECK REACHABILITY FIRST!
+            energy_to_station = dist_from_start * consumption
+            if current_charge_kwh < energy_to_station:
+                # Cannot reach this station - skip it
+                continue
+            
+            # Calculate distance from station to destination
             dist_to_destination = self.get_shortest_path_distance(
                 station_id, to_node
             )
-            
-            if dist_from_start is None or dist_to_destination is None:
+            if dist_to_destination is None:
                 continue
             
+            # Calculate detour
             direct_distance = self.get_shortest_path_distance(
                 from_node, to_node
             )
@@ -288,20 +301,20 @@ class ConsiditionAlgorithm:
         # Check if zone has green energy
         has_green_energy = self.zone_has_green_energy(zone)
         
-        # Base score is detour distance
-        score = detour
+        # AGGRESSIVE MODE: Reduce detour penalties (KWH revenue > completion)
+        score = detour * 0.5  # Base score with lower penalty
         
-        # Adjust based on persona
+        # Adjust based on persona (but be more liberal!)
         if persona == "Stressed" or persona == "DislikesDriving":
-            # Minimize time and detour
-            score += detour * 2  # Heavily penalize detours
-            score -= charge_speed * 0.1  # Favor fast charging
+            # Still minimize detour, but less strict
+            score += detour * 0.5  # Lower penalty (was 2x)
+            score -= charge_speed * 0.2  # More favor for fast charging
         
         elif persona == "CostSensitive":
             # Favor cheaper options (green energy might be cheaper)
             if has_green_energy:
                 score -= 50
-            score += detour * 0.5  # Moderate detour penalty
+            score += detour * 0.2  # Low detour penalty (was 0.5)
         
         elif persona == "EcoConscious":
             # Strongly favor green energy
@@ -309,13 +322,13 @@ class ConsiditionAlgorithm:
                 score -= 100
             else:
                 score += 100  # Penalize non-green
-            score += detour * 0.3  # Lower detour penalty
+            score += detour * 0.1  # Very low detour penalty (was 0.3)
         
         else:  # Neutral
-            # Balanced approach
+            # Balanced approach, but liberal on detours
             if has_green_energy:
                 score -= 20
-            score += detour * 1.0
+            score += detour * 0.3  # Lower penalty (was 1.0)
         
         return score
     
@@ -519,12 +532,12 @@ class ConsiditionAlgorithm:
         charge_at_station = current_charge_kwh - energy_to_station
         energy_from_station = dist_from_station * consumption_per_km
         
-        # Target charge with good safety margin (50%)
-        target_charge_kwh = charge_at_station + (energy_from_station * 1.5)
+        # AGGRESSIVE: Target charge with 2x safety margin!
+        target_charge_kwh = charge_at_station + (energy_from_station * 2.0)
         
-        # But always charge to at least 90% if stopping
-        # (Stopping to charge has overhead, make it worth it!)
-        min_charge_kwh = max_charge_kwh * 0.90
+        # Always charge to at least 95% if stopping (MAXIMIZE KWH!)
+        # Stopping to charge has overhead, make it worth it!
+        min_charge_kwh = max_charge_kwh * 0.95
         target_charge_kwh = max(min_charge_kwh, target_charge_kwh)
         
         # Cap at max battery
@@ -533,8 +546,8 @@ class ConsiditionAlgorithm:
         # Convert to percentage (0-1)
         target_charge_fraction = target_charge_kwh / max_charge_kwh
         
-        # Ensure between 0.01 and 0.95 (avoid 0 and 1 per docs!)
-        target_charge_fraction = max(0.01, min(0.95, target_charge_fraction))
+        # Charge high! Between 0.85 and 0.99 (max KWH revenue!)
+        target_charge_fraction = max(0.85, min(0.99, target_charge_fraction))
         
         recommendation = {
             "customerId": customer_id,
