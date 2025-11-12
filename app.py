@@ -16,6 +16,57 @@ def generate_tick(map_obj, current_tick):
     if recommendations:
         print(f"Tick {current_tick}: Generated {len(recommendations)} "
               f"recommendations")
+        # Validate recommendations before returning
+        valid_recommendations = []
+        seen_customer_ids = set()
+        for rec in recommendations:
+            customer_id = rec.get("customerId")
+            charging_stops = rec.get("chargingRecommendations", [])
+            
+            # Skip if no customer ID
+            if not customer_id:
+                continue
+            
+            # Skip if duplicate customer ID
+            if customer_id in seen_customer_ids:
+                print(f"  Warning: Duplicate customer ID {customer_id} at tick {current_tick}")
+                continue
+            
+            # Validate charging stops
+            valid_stops = []
+            for stop in charging_stops:
+                node_id = stop.get("nodeId")
+                charge_to = stop.get("chargeTo")
+                
+                # Validate stop
+                if not node_id:
+                    continue
+                if charge_to is None:
+                    continue
+                try:
+                    charge_to = float(charge_to)
+                    if not (0.01 <= charge_to <= 0.95):
+                        continue
+                except (ValueError, TypeError):
+                    continue
+                
+                valid_stops.append({
+                    "nodeId": str(node_id),
+                    "chargeTo": round(float(charge_to), 3)
+                })
+            
+            # Only add if has valid stops
+            if valid_stops:
+                valid_recommendations.append({
+                    "customerId": str(customer_id),
+                    "chargingRecommendations": valid_stops
+                })
+                seen_customer_ids.add(customer_id)
+            else:
+                print(f"  Warning: Customer {customer_id} has no valid charging stops at tick {current_tick}")
+        
+        recommendations = valid_recommendations
+    
     return {
         "tick": current_tick,
         "customerRecommendations": recommendations,
@@ -68,6 +119,25 @@ def main():
                 game_response = client.post_game(input_payload)
             except Exception as e:
                 print(f"Error posting game data: {e}")
+                # Print payload for debugging
+                import json
+                print(f"\n=== DEBUG: Payload that caused error ===")
+                print(json.dumps(input_payload, indent=2, default=str))
+                
+                # Check for common issues
+                if "ticks" in input_payload:
+                    for tick_data in input_payload["ticks"]:
+                        recs = tick_data.get("customerRecommendations", [])
+                        print(f"\nTick {tick_data.get('tick')}: {len(recs)} recommendations")
+                        for rec in recs:
+                            customer_id = rec.get("customerId")
+                            stops = rec.get("chargingRecommendations", [])
+                            print(f"  Customer {customer_id}: {len(stops)} stops")
+                            for stop in stops:
+                                node_id = stop.get("nodeId")
+                                charge_to = stop.get("chargeTo")
+                                print(f"    - Node: {node_id}, ChargeTo: {charge_to}")
+                
                 sys.exit(1)
             elapsed_ms = (time.perf_counter() - start) * 1000
             print(f"Tick {i} took: {elapsed_ms:.2f}ms")
