@@ -1,0 +1,1616 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Api | v1",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080/"
+    }
+  ],
+  "paths": {
+    "/api/game": {
+      "post": {
+        "tags": [
+          "Play"
+        ],
+        "description": "Validates, runs and scores your game",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GameInputDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameResponseDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Play"
+        ],
+        "description": "Get previous game by gameId",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/map": {
+      "get": {
+        "tags": [
+          "Play"
+        ],
+        "description": "Get map by name",
+        "parameters": [
+          {
+            "name": "mapName",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/map-config": {
+      "get": {
+        "tags": [
+          "Play"
+        ],
+        "description": "Get map config by name",
+        "parameters": [
+          {
+            "name": "mapName",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapConfigDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/map-configs": {
+      "get": {
+        "tags": [
+          "Play"
+        ],
+        "description": "Get map config by name",
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapConfigDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game-with-custom-map": {
+      "post": {
+        "tags": [
+          "Play"
+        ],
+        "description": "Special endpoint that is only available in a local environment. Here the player can post both a map and input data simultaneously. When training AI this could be useful",
+        "operationId": "Play game with custom map",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GameInputAndMapConfigDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/map-from-custom-config": {
+      "get": {
+        "tags": [
+          "Play"
+        ],
+        "description": "Special endpoint that is only available in a local environment. Here the player can post map config and get a generated map back",
+        "operationId": "Player created maps from custom map config",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MapConfigDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChargingRecommendationDto": {
+        "required": [
+          "nodeId"
+        ],
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "string"
+          },
+          "chargeTo": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "CustomerDto": {
+        "required": [
+          "id",
+          "type",
+          "persona",
+          "fromNode",
+          "toNode"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "persona": {
+            "type": "string"
+          },
+          "fromNode": {
+            "type": "string"
+          },
+          "toNode": {
+            "type": "string"
+          },
+          "departureTick": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "chargeRemaining": {
+            "type": "number",
+            "format": "float"
+          },
+          "maxCharge": {
+            "type": "number",
+            "format": "float"
+          },
+          "energyConsumptionPerKm": {
+            "type": "number",
+            "format": "float"
+          },
+          "state": {
+            "$ref": "#/components/schemas/CustomerState"
+          }
+        }
+      },
+      "CustomerLogDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/CustomerState"
+          },
+          "mood": {
+            "$ref": "#/components/schemas/CustomerMood"
+          },
+          "tick": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "posX": {
+            "type": "number",
+            "format": "float",
+            "nullable": true
+          },
+          "posY": {
+            "type": "number",
+            "format": "float",
+            "nullable": true
+          },
+          "chargeRemaining": {
+            "type": "number",
+            "format": "float"
+          },
+          "ticksSpentWaiting": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "ticksSpentCharging": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "edge": {
+            "type": "string",
+            "nullable": true
+          },
+          "node": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CustomerMood": {
+        "enum": [
+          "Happy",
+          "Pleased",
+          "Content",
+          "SlightlyMiffed",
+          "Angry"
+        ]
+      },
+      "CustomerRecommendationDto": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "chargingRecommendations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChargingRecommendationDto"
+            }
+          }
+        }
+      },
+      "CustomerState": {
+        "enum": [
+          "Home",
+          "WaitingForCharger",
+          "Charging",
+          "DoneCharging",
+          "Traveling",
+          "TransitioningToNode",
+          "TransitioningToEdge",
+          "DestinationReached",
+          "FailedToCharge",
+          "RanOutOfJuice"
+        ]
+      },
+      "CustomerWithLogsDto": {
+        "required": [
+          "customerId"
+        ],
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "maxCharge": {
+            "type": "number",
+            "format": "float"
+          },
+          "persona": {
+            "$ref": "#/components/schemas/PersonaType"
+          },
+          "vehicleType": {
+            "$ref": "#/components/schemas/VehicleType"
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerLogDto"
+            }
+          }
+        }
+      },
+      "EdgeDto": {
+        "required": [
+          "id",
+          "fromNode",
+          "toNode",
+          "length",
+          "customers"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fromNode": {
+            "type": "string"
+          },
+          "toNode": {
+            "type": "string"
+          },
+          "length": {
+            "type": "number",
+            "format": "float"
+          },
+          "customers": {
+            "type": "array",
+            "items": { }
+          }
+        }
+      },
+      "EnergyMixDto": {
+        "required": [
+          "energySources"
+        ],
+        "type": "object",
+        "properties": {
+          "energySources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnergySourceDto2"
+            },
+            "description": "Must contain at least as many energy sources as ther are zones. eg: ZoneCountX * ZoneCountY"
+          },
+          "energyStorages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnergyStorageDto2"
+            },
+            "description": "Optional. will only be placed in zones with green power"
+          }
+        },
+        "description": "Energy mix of the map. At least one energy source must be set. Battery will only matter if Solar and/or wind energy sources are configured",
+        "nullable": true
+      },
+      "EnergySourceDto": {
+        "required": [
+          "type",
+          "generationCapacity"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "generationCapacity": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "EnergySourceDto2": {
+        "required": [
+          "producedEnergy",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "producedEnergy": {
+            "type": "number",
+            "description": "In Mw",
+            "format": "float"
+          },
+          "type": {
+            "$ref": "#/components/schemas/EnergySourceType"
+          }
+        }
+      },
+      "EnergySourceType": {
+        "enum": [
+          "Coal",
+          "NaturalGas",
+          "Nuclear",
+          "Solar",
+          "Wind",
+          "Hydro",
+          "Battery"
+        ],
+        "description": "The type affects the score, green energy soures gives more points"
+      },
+      "EnergyStorageDto": {
+        "required": [
+          "capacityMWh",
+          "efficiency",
+          "maxChargePowerMw",
+          "maxDischargePowerMw"
+        ],
+        "type": "object",
+        "properties": {
+          "capacityMWh": {
+            "type": "number",
+            "format": "float"
+          },
+          "efficiency": {
+            "type": "number",
+            "format": "float"
+          },
+          "maxChargePowerMw": {
+            "type": "number",
+            "format": "float"
+          },
+          "maxDischargePowerMw": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "EnergyStorageDto2": {
+        "type": "object",
+        "properties": {
+          "energyStorageCapacity": {
+            "type": "integer",
+            "description": "In MwH",
+            "format": "int32"
+          },
+          "maxChargePower": {
+            "type": "integer",
+            "description": "How fast the storage can charge, In Mw",
+            "format": "int32"
+          },
+          "maxDischargePower": {
+            "type": "integer",
+            "description": "How fast the storage can discharge, In Mw",
+            "format": "int32"
+          }
+        }
+      },
+      "GameInputAndMapConfigDto": {
+        "type": "object",
+        "properties": {
+          "gameInput": {
+            "$ref": "#/components/schemas/GameInputDto2"
+          },
+          "mapConfig": {
+            "$ref": "#/components/schemas/MapConfigDto2"
+          }
+        }
+      },
+      "GameInputDto": {
+        "type": "object",
+        "properties": {
+          "mapName": {
+            "type": "string",
+            "description": "The name of the map to play",
+            "nullable": true
+          },
+          "ticks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TickDto"
+            },
+            "description": "The ticks of the game"
+          },
+          "playToTick": {
+            "type": "integer",
+            "description": "Optional. Tick index to play to. If the map has 100 ticks and this value is lower the game engine will stop at this lower value. This value is not allowed when submitting maps for final judgment",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "GameInputDto2": {
+        "type": "object",
+        "properties": {
+          "mapName": {
+            "type": "string",
+            "description": "The name of the map to play",
+            "nullable": true
+          },
+          "ticks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TickDto"
+            },
+            "description": "The ticks of the game"
+          },
+          "playToTick": {
+            "type": "integer",
+            "description": "Optional. Tick index to play to. If the map has 100 ticks and this value is lower the game engine will stop at this lower value. This value is not allowed when submitting maps for final judgment",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "description": "Game input for custom map",
+        "nullable": true
+      },
+      "GameResponseDto": {
+        "required": [
+          "map",
+          "score"
+        ],
+        "type": "object",
+        "properties": {
+          "tick": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gameId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "map": {
+            "$ref": "#/components/schemas/MapDto"
+          },
+          "score": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kwhRevenue": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "customerCompletionScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "customerLogs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerWithLogsDto"
+            },
+            "nullable": true
+          },
+          "unlockedAchievements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "zoneLogs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ZoneLogsDto"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "HttpValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "MapConfigDto": {
+        "required": [
+          "dimX",
+          "dimY",
+          "ticks",
+          "chargingStations",
+          "customers",
+          "energyMix",
+          "personaDifficulty"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Optional name for the map, if not given an name will be auto generated",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description for the map",
+            "nullable": true
+          },
+          "dimX": {
+            "type": "integer",
+            "description": "Width of map",
+            "format": "int32"
+          },
+          "dimY": {
+            "type": "integer",
+            "description": "Height of map",
+            "format": "int32"
+          },
+          "seed": {
+            "type": "string",
+            "description": "Optional. Used for seeding random numbers, can be anything. If empty a non seeded random will be used",
+            "nullable": true
+          },
+          "ticks": {
+            "type": "integer",
+            "description": "Number of ticks to play the map",
+            "format": "int32"
+          },
+          "chargingStations": {
+            "type": "integer",
+            "description": "Number of charging stations on the map",
+            "format": "int32"
+          },
+          "events": {
+            "type": "integer",
+            "description": "TBD",
+            "format": "int32"
+          },
+          "customers": {
+            "type": "integer",
+            "description": "Number of customers on the map at any given tick",
+            "format": "int32"
+          },
+          "percentageHoles": {
+            "type": "number",
+            "description": "Optional. % value between 0.0 and 0.5. Removes nodes during map generation, creating holes. Default value: 0.5",
+            "format": "float"
+          },
+          "percentageBridges": {
+            "type": "number",
+            "description": "Optional. % value between 0.0 and 0.5. Add bridges across some of the holes. Default value: 0.2",
+            "format": "float"
+          },
+          "minimumIslandSize": {
+            "type": "integer",
+            "description": "Optional. When nodes are removed, sometimes islands are created, islands below this many nodes are removed. Default value: 4",
+            "format": "int32"
+          },
+          "zoneCountX": {
+            "type": "integer",
+            "description": "Optional. How many zones the map should be divided in across its width. Default value: 1",
+            "format": "int32"
+          },
+          "zoneCountY": {
+            "type": "integer",
+            "description": "Optional. How many zones the map should be divided in across its height. Default value: 1",
+            "format": "int32"
+          },
+          "energyMix": {
+            "$ref": "#/components/schemas/EnergyMixDto"
+          },
+          "personaDifficulty": {
+            "type": "integer",
+            "description": "How many personas should we load into the engine",
+            "format": "int32"
+          },
+          "edgeLengthModifier": {
+            "type": "number",
+            "description": "Optinal. Used to scale the length of the edges. Default value: 5.0",
+            "format": "float"
+          },
+          "maxChargersPerStation": {
+            "type": "integer",
+            "description": "Optional. How many chargers per station are generated at most. Default value: 20",
+            "format": "int32"
+          },
+          "minChargerSpeed": {
+            "type": "integer",
+            "description": "Optional. Minimum charger speed in Kw. Default value: 50",
+            "format": "int32"
+          },
+          "maxChargerSpeed": {
+            "type": "integer",
+            "description": "Optional. Maximum charger speed in Kw. Default value: 200",
+            "format": "int32"
+          },
+          "maxBrokenChargerPercentage": {
+            "type": "number",
+            "description": "Optional. How big percentage at most of chargers are broken. Default value: 1",
+            "format": "float"
+          },
+          "minBrokenChargerPercentage": {
+            "type": "number",
+            "description": "Optional. How big percentage at minimum of chargers are broken. Default value: 0",
+            "format": "float"
+          },
+          "newCustomerMinWait": {
+            "type": "integer",
+            "description": "Optional. Minimum number of ticks a customer will wait before starting its journey. Default value: 1",
+            "format": "int32"
+          },
+          "newCustomerMaxWait": {
+            "type": "integer",
+            "description": "Optional. Maximum number of ticks a customer will wait before starting its journey. Default value: 50",
+            "format": "int32"
+          },
+          "newCustomerMinChargeRemaining": {
+            "type": "number",
+            "description": "Optional. Minimum charge remaining a customer will start with. Default value: 0.15",
+            "format": "float"
+          },
+          "percentageTrucks": {
+            "type": "number",
+            "description": "Optional. Percentage of trucks generated. Default value: 0.2",
+            "format": "float"
+          },
+          "cloudVolatility": {
+            "type": "number",
+            "description": "Optional. value between 0 and 1, 1 being the move volatile. Default value: 0.5",
+            "format": "float"
+          },
+          "cloudOffset": {
+            "type": "number",
+            "description": "Optional. Offset for cloud cover, between 0 and 1. Default value: 0",
+            "format": "float"
+          },
+          "windVolatility": {
+            "type": "number",
+            "description": "Optional. value between 0 and 1, 1 being the move volatile. Default value: 0.5",
+            "format": "float"
+          },
+          "windOffset": {
+            "type": "number",
+            "description": "Optional. Offset for wind speed, between 0 and 1. Default value: 0",
+            "format": "float"
+          },
+          "personas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonaConfigDto"
+            },
+            "description": "Optional. Configuration for personas, by default all 5 personas have an even 20% chance. negative percentage means 'the rest' and should be last in the array "
+          },
+          "achievementsEnabled": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "MapConfigDto2": {
+        "required": [
+          "dimX",
+          "dimY",
+          "ticks",
+          "chargingStations",
+          "customers",
+          "energyMix",
+          "personaDifficulty"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Optional name for the map, if not given an name will be auto generated",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description for the map",
+            "nullable": true
+          },
+          "dimX": {
+            "type": "integer",
+            "description": "Width of map",
+            "format": "int32"
+          },
+          "dimY": {
+            "type": "integer",
+            "description": "Height of map",
+            "format": "int32"
+          },
+          "seed": {
+            "type": "string",
+            "description": "Optional. Used for seeding random numbers, can be anything. If empty a non seeded random will be used",
+            "nullable": true
+          },
+          "ticks": {
+            "type": "integer",
+            "description": "Number of ticks to play the map",
+            "format": "int32"
+          },
+          "chargingStations": {
+            "type": "integer",
+            "description": "Number of charging stations on the map",
+            "format": "int32"
+          },
+          "events": {
+            "type": "integer",
+            "description": "TBD",
+            "format": "int32"
+          },
+          "customers": {
+            "type": "integer",
+            "description": "Number of customers on the map at any given tick",
+            "format": "int32"
+          },
+          "percentageHoles": {
+            "type": "number",
+            "description": "Optional. % value between 0.0 and 0.5. Removes nodes during map generation, creating holes. Default value: 0.5",
+            "format": "float"
+          },
+          "percentageBridges": {
+            "type": "number",
+            "description": "Optional. % value between 0.0 and 0.5. Add bridges across some of the holes. Default value: 0.2",
+            "format": "float"
+          },
+          "minimumIslandSize": {
+            "type": "integer",
+            "description": "Optional. When nodes are removed, sometimes islands are created, islands below this many nodes are removed. Default value: 4",
+            "format": "int32"
+          },
+          "zoneCountX": {
+            "type": "integer",
+            "description": "Optional. How many zones the map should be divided in across its width. Default value: 1",
+            "format": "int32"
+          },
+          "zoneCountY": {
+            "type": "integer",
+            "description": "Optional. How many zones the map should be divided in across its height. Default value: 1",
+            "format": "int32"
+          },
+          "energyMix": {
+            "$ref": "#/components/schemas/EnergyMixDto"
+          },
+          "personaDifficulty": {
+            "type": "integer",
+            "description": "How many personas should we load into the engine",
+            "format": "int32"
+          },
+          "edgeLengthModifier": {
+            "type": "number",
+            "description": "Optinal. Used to scale the length of the edges. Default value: 5.0",
+            "format": "float"
+          },
+          "maxChargersPerStation": {
+            "type": "integer",
+            "description": "Optional. How many chargers per station are generated at most. Default value: 20",
+            "format": "int32"
+          },
+          "minChargerSpeed": {
+            "type": "integer",
+            "description": "Optional. Minimum charger speed in Kw. Default value: 50",
+            "format": "int32"
+          },
+          "maxChargerSpeed": {
+            "type": "integer",
+            "description": "Optional. Maximum charger speed in Kw. Default value: 200",
+            "format": "int32"
+          },
+          "maxBrokenChargerPercentage": {
+            "type": "number",
+            "description": "Optional. How big percentage at most of chargers are broken. Default value: 1",
+            "format": "float"
+          },
+          "minBrokenChargerPercentage": {
+            "type": "number",
+            "description": "Optional. How big percentage at minimum of chargers are broken. Default value: 0",
+            "format": "float"
+          },
+          "newCustomerMinWait": {
+            "type": "integer",
+            "description": "Optional. Minimum number of ticks a customer will wait before starting its journey. Default value: 1",
+            "format": "int32"
+          },
+          "newCustomerMaxWait": {
+            "type": "integer",
+            "description": "Optional. Maximum number of ticks a customer will wait before starting its journey. Default value: 50",
+            "format": "int32"
+          },
+          "newCustomerMinChargeRemaining": {
+            "type": "number",
+            "description": "Optional. Minimum charge remaining a customer will start with. Default value: 0.15",
+            "format": "float"
+          },
+          "percentageTrucks": {
+            "type": "number",
+            "description": "Optional. Percentage of trucks generated. Default value: 0.2",
+            "format": "float"
+          },
+          "cloudVolatility": {
+            "type": "number",
+            "description": "Optional. value between 0 and 1, 1 being the move volatile. Default value: 0.5",
+            "format": "float"
+          },
+          "cloudOffset": {
+            "type": "number",
+            "description": "Optional. Offset for cloud cover, between 0 and 1. Default value: 0",
+            "format": "float"
+          },
+          "windVolatility": {
+            "type": "number",
+            "description": "Optional. value between 0 and 1, 1 being the move volatile. Default value: 0.5",
+            "format": "float"
+          },
+          "windOffset": {
+            "type": "number",
+            "description": "Optional. Offset for wind speed, between 0 and 1. Default value: 0",
+            "format": "float"
+          },
+          "personas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonaConfigDto"
+            },
+            "description": "Optional. Configuration for personas, by default all 5 personas have an even 20% chance. negative percentage means 'the rest' and should be last in the array "
+          },
+          "achievementsEnabled": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "description": "Your custom map config that matches the game input",
+        "nullable": true
+      },
+      "MapDto": {
+        "required": [
+          "dimX",
+          "dimY",
+          "nodes",
+          "edges",
+          "zones"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "dimX": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dimY": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NodeDto"
+            }
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EdgeDto"
+            }
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ZoneDto"
+            }
+          },
+          "ticks": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "NodeDto": {
+        "required": [
+          "id",
+          "posX",
+          "posY",
+          "zoneId",
+          "customers",
+          "target"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "posX": {
+            "type": "number",
+            "format": "float"
+          },
+          "posY": {
+            "type": "number",
+            "format": "float"
+          },
+          "zoneId": {
+            "type": "string",
+            "nullable": true
+          },
+          "customers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerDto"
+            }
+          },
+          "target": {
+            "$ref": "#/components/schemas/TargetDto"
+          }
+        }
+      },
+      "PersonaConfigDto": {
+        "type": "object",
+        "properties": {
+          "persona": {
+            "$ref": "#/components/schemas/PersonaType2"
+          },
+          "percentage": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "PersonaType": {
+        "enum": [
+          "Stressed",
+          "CostSensitive",
+          "EcoConscious",
+          "Neutral",
+          "DislikesDriving"
+        ]
+      },
+      "PersonaType2": {
+        "type": "integer"
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SourceMarketInfo": {
+        "type": "object",
+        "properties": {
+          "production": {
+            "type": "number",
+            "format": "float"
+          },
+          "pricePerMWh": {
+            "type": "number",
+            "format": "float"
+          },
+          "revenue": {
+            "type": "number",
+            "format": "float"
+          },
+          "isGreen": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StorageAction": {
+        "type": "integer"
+      },
+      "StorageInfo": {
+        "type": "object",
+        "properties": {
+          "capacityMWh": {
+            "type": "number",
+            "format": "float"
+          },
+          "currentChargeMWh": {
+            "type": "number",
+            "format": "float"
+          },
+          "stateOfChargePercent": {
+            "type": "number",
+            "format": "float"
+          },
+          "powerMw": {
+            "type": "number",
+            "format": "float"
+          },
+          "action": {
+            "$ref": "#/components/schemas/StorageAction"
+          },
+          "storedEnergyPrice": {
+            "type": "number",
+            "format": "float"
+          },
+          "storedGreenPercent": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "TargetDto": {
+        "required": [
+          "Type"
+        ],
+        "type": "object",
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/TargetDtoChargingStationDto"
+          },
+          {
+            "$ref": "#/components/schemas/TargetDtoNullTargetDto"
+          }
+        ],
+        "nullable": true,
+        "discriminator": {
+          "propertyName": "Type",
+          "mapping": {
+            "ChargingStation": "#/components/schemas/TargetDtoChargingStationDto",
+            "Null": "#/components/schemas/TargetDtoNullTargetDto"
+          }
+        }
+      },
+      "TargetDtoChargingStationDto": {
+        "required": [
+          "amountOfAvailableChargers",
+          "totalAmountOfBrokenChargers",
+          "chargeSpeedPerCharger",
+          "totalAmountOfChargers"
+        ],
+        "properties": {
+          "Type": {
+            "enum": [
+              "ChargingStation"
+            ],
+            "type": "string"
+          },
+          "amountOfAvailableChargers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalAmountOfBrokenChargers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "chargeSpeedPerCharger": {
+            "type": "number",
+            "format": "float"
+          },
+          "totalAmountOfChargers": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "TargetDtoNullTargetDto": {
+        "properties": {
+          "Type": {
+            "enum": [
+              "Null"
+            ],
+            "type": "string"
+          }
+        }
+      },
+      "TickDto": {
+        "type": "object",
+        "properties": {
+          "tick": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "customerRecommendations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerRecommendationDto"
+            }
+          }
+        }
+      },
+      "Vector2": {
+        "type": "object"
+      },
+      "VehicleType": {
+        "enum": [
+          "None",
+          "Car",
+          "Truck"
+        ]
+      },
+      "WeatherType": {
+        "type": "integer"
+      },
+      "ZoneDto": {
+        "required": [
+          "id",
+          "topLeftX",
+          "topLeftY",
+          "bottomRightX",
+          "bottomRightY",
+          "energySources",
+          "energyStorages"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "topLeftX": {
+            "type": "number",
+            "format": "float"
+          },
+          "topLeftY": {
+            "type": "number",
+            "format": "float"
+          },
+          "bottomRightX": {
+            "type": "number",
+            "format": "float"
+          },
+          "bottomRightY": {
+            "type": "number",
+            "format": "float"
+          },
+          "energySources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnergySourceDto"
+            }
+          },
+          "energyStorages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnergyStorageDto"
+            }
+          }
+        }
+      },
+      "ZoneLogDto": {
+        "type": "object",
+        "properties": {
+          "zoneId": {
+            "type": "string"
+          },
+          "totalProduction": {
+            "type": "number",
+            "format": "float"
+          },
+          "totalDemand": {
+            "type": "number",
+            "format": "float"
+          },
+          "totalRevenue": {
+            "type": "number",
+            "format": "float"
+          },
+          "weatherType": {
+            "$ref": "#/components/schemas/WeatherType"
+          },
+          "topRight": {
+            "$ref": "#/components/schemas/Vector2"
+          },
+          "topLeft": {
+            "$ref": "#/components/schemas/Vector2"
+          },
+          "bottomRight": {
+            "$ref": "#/components/schemas/Vector2"
+          },
+          "bottomLeft": {
+            "$ref": "#/components/schemas/Vector2"
+          },
+          "sourceinfo": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SourceMarketInfo"
+            }
+          },
+          "storageInfo": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StorageInfo"
+            }
+          }
+        }
+      },
+      "ZoneLogsDto": {
+        "type": "object",
+        "properties": {
+          "tick": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ZoneLogDto"
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Play"
+    }
+  ]
+}

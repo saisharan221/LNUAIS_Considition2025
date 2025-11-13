@@ -1,8 +1,18 @@
 import sys
 import time
 import os
+import json
 from client import ConsiditionClient
 from algorithm import generate_customer_recommendations
+
+
+def save_game_response(game_response, filename="latest_game_response.json"):
+    """Persist the latest game response for offline analysis."""
+    try:
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(game_response, f, indent=2)
+    except OSError as exc:
+        print(f"Failed to write latest game response: {exc}")
 
 
 def should_move_on_to_next_tick(response):
@@ -35,7 +45,7 @@ def main():
     else:
         print(f"Using Local API: {base_url}")
     
-    map_name = "Batterytown"  # Change to test different maps
+    map_name = "Pistonia"  # Change to test different maps
 
     client = ConsiditionClient(base_url, api_key)
 
@@ -50,6 +60,7 @@ def main():
         sys.exit(1)
 
     final_score = 0
+    final_game_id = None
     good_ticks = []
 
     current_tick = generate_tick(map_obj, 0)
@@ -76,8 +87,22 @@ def main():
                 print("Got no game response")
                 sys.exit(1)
 
-            # Sum the scores directly (assuming they are numbers)
-            final_score = game_response.get("score", 0)
+            save_game_response(game_response)
+
+            # Track tick scores and final totals
+            tick_total = game_response.get("score", 0)
+            tick_kwh = game_response.get("kwhRevenue", 0)
+            tick_customer_completion = game_response.get(
+                "customerCompletionScore", 0
+            )
+            final_score = tick_total
+            final_game_id = game_response.get("gameId", final_game_id)
+
+            print(
+                f"Tick {i} scores -> total: {tick_total}, "
+                f"kWh revenue: {tick_kwh}, "
+                f"customer completion: {tick_customer_completion}"
+            )
 
             if should_move_on_to_next_tick(game_response):
                 good_ticks.append(current_tick)
@@ -115,6 +140,10 @@ def main():
                 }
 
     print(f"Final score: {final_score}")
+    if final_game_id:
+        print(f"Game ID: {final_game_id}")
+    else:
+        print("Game ID: unavailable")
 
 
 if __name__ == "__main__":

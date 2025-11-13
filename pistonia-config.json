@@ -1,0 +1,180 @@
+{
+  "name": "Pistonia",
+  "description": "A compact, high-stakes industrial hub where energy flows are unpredictable and terrain bottlenecks create intense competition between charging stations. Strategy and timing are everything.",
+  "dimX": 15,
+  "dimY": 15,
+  "seed": "winnertakesitall",
+  "ticks": 288,
+  "chargingStations": 30,
+  "events": 20,
+  "customers": 250,
+  "percentageHoles": 0.25,
+  "percentageBridges": 0.45,
+  "minimumIslandSize": 4,
+  "zoneCountX": 5,
+  "zoneCountY": 5,
+  "energyMix": {
+    "energySources": [
+      {
+        "producedEnergy": 0.4,
+        "type": "Coal"
+      },
+      {
+        "producedEnergy": 0.6,
+        "type": "NaturalGas"
+      },
+      {
+        "producedEnergy": 1.9,
+        "type": "Nuclear"
+      },
+      {
+        "producedEnergy": 2,
+        "type": "Nuclear"
+      },
+      {
+        "producedEnergy": 0.2,
+        "type": "Wind"
+      },
+      {
+        "producedEnergy": 0.4,
+        "type": "Solar"
+      },
+      {
+        "producedEnergy": 0.2,
+        "type": "Coal"
+      },
+      {
+        "producedEnergy": 0.2,
+        "type": "Coal"
+      },
+      {
+        "producedEnergy": 0.1,
+        "type": "Solar"
+      },
+      {
+        "producedEnergy": 1.5,
+        "type": "Nuclear"
+      },
+      {
+        "producedEnergy": 0.5,
+        "type": "NaturalGas"
+      },
+      {
+        "producedEnergy": 0.2,
+        "type": "Wind"
+      },
+      {
+        "producedEnergy": 4,
+        "type": "Nuclear"
+      },
+      {
+        "producedEnergy": 0.2,
+        "type": "Coal"
+      },
+      {
+        "producedEnergy": 0.6,
+        "type": "Coal"
+      },
+      {
+        "producedEnergy": 0.2,
+        "type": "NaturalGas"
+      },
+      {
+        "producedEnergy": 0.2,
+        "type": "Wind"
+      },
+      {
+        "producedEnergy": 3,
+        "type": "Nuclear"
+      },
+      {
+        "producedEnergy": 0.1,
+        "type": "Solar"
+      },
+      {
+        "producedEnergy": 0.3,
+        "type": "Solar"
+      },
+      {
+        "producedEnergy": 1.9,
+        "type": "Nuclear"
+      },
+      {
+        "producedEnergy": 0.2,
+        "type": "NaturalGas"
+      },
+      {
+        "producedEnergy": 2.5,
+        "type": "Nuclear"
+      },
+      {
+        "producedEnergy": 0.2,
+        "type": "NaturalGas"
+      },
+      {
+        "producedEnergy": 0.2,
+        "type": "Solar"
+      }
+    ],
+    "energyStorages": [
+      {
+        "energyStorageCapacity": 500,
+        "maxChargePower": 50,
+        "maxDischargePower": 50
+      },
+      {
+        "energyStorageCapacity": 800,
+        "maxChargePower": 80,
+        "maxDischargePower": 80
+      },
+      {
+        "energyStorageCapacity": 300,
+        "maxChargePower": 30,
+        "maxDischargePower": 30
+      },
+      {
+        "energyStorageCapacity": 600,
+        "maxChargePower": 30,
+        "maxDischargePower": 30
+      }
+    ]
+  },
+  "personaDifficulty": 5,
+  "edgeLengthModifier": 5,
+  "maxChargersPerStation": 3,
+  "minChargerSpeed": 150,
+  "maxChargerSpeed": 200,
+  "maxBrokenChargerPercentage": 1,
+  "minBrokenChargerPercentage": 0,
+  "newCustomerMinWait": 1,
+  "newCustomerMaxWait": 50,
+  "newCustomerMinChargeRemaining": 0.15,
+  "percentageTrucks": 0.2,
+  "cloudVolatility": 0.5,
+  "cloudOffset": 0,
+  "windVolatility": 0.5,
+  "windOffset": 0,
+  "personas": [
+    {
+      "persona": 1,
+      "percentage": 20
+    },
+    {
+      "persona": 4,
+      "percentage": 20
+    },
+    {
+      "persona": 2,
+      "percentage": 20
+    },
+    {
+      "persona": 0,
+      "percentage": 20
+    },
+    {
+      "persona": 3,
+      "percentage": -1
+    }
+  ],
+  "achievementsEnabled": true
+}

@@ -10,6 +10,9 @@ availability, route optimization, and energy source preferences.
 
 import heapq
 
+GREEN_ENERGY_SOURCES = {"Hydro", "Nuclear", "Wind", "Solar"}
+RISKY_NODE_KEYWORDS = ("bridge", "hole")
+
 
 class ConsiditionAlgorithm:
     def __init__(self, map_obj):
@@ -24,12 +27,23 @@ class ConsiditionAlgorithm:
         self.nodes = {}
         self.charging_stations = {}
         self.zones = {}
+        self.zone_headroom = {}
+        self.node_risk = {}
         self.customers = []
         
         self.initialize_game_state()
     
     def initialize_game_state(self):
         """Extract and initialize game state from map object."""
+        # Reset caches so updates don't accumulate stale data
+        self.graph = {}
+        self.nodes = {}
+        self.charging_stations = {}
+        self.zones = {}
+        self.zone_headroom = {}
+        self.node_risk = {}
+        self.customers = []
+        
         # Build graph from nodes and edges
         nodes_list = self.map_obj.get("nodes", [])
         edges_list = self.map_obj.get("edges", [])
@@ -38,8 +52,11 @@ class ConsiditionAlgorithm:
         # Index nodes
         for node in nodes_list:
             node_id = node.get("id")
+            if node_id is None:
+                continue
             self.nodes[node_id] = node
             self.graph[node_id] = []
+            self.node_risk[node_id] = self._assess_node_risk(node)
             
             # Track charging stations
             target = node.get("target", {})
@@ -67,7 +84,11 @@ class ConsiditionAlgorithm:
         # Index zones
         for zone in zones_list:
             zone_id = zone.get("id")
+            if zone_id is None:
+                continue
             self.zones[zone_id] = zone
+        
+        self._compute_zone_headroom()
         
         # Track customer states
         self.customer_states = {}
@@ -229,10 +250,10 @@ class ConsiditionAlgorithm:
         best_score = float('inf')
         
         for station_id, station_info in self.charging_stations.items():
-            # Check if station has available chargers
-            available = station_info.get("amountOfAvailableChargers", 0)
-            if available <= 0:
+            if not self._station_operational(station_info):
                 continue
+            
+            available = station_info.get("amountOfAvailableChargers", 0)
             
             # Calculate distance to station
             dist_from_start = self.get_shortest_path_distance(
@@ -292,6 +313,12 @@ class ConsiditionAlgorithm:
             Score (lower is better)
         """
         charge_speed = station_info.get("chargeSpeedPerCharger", 100)
+        total_chargers = max(1, station_info.get("totalAmountOfChargers", 1))
+        broken_chargers = min(
+            total_chargers,
+            station_info.get("totalAmountOfBrokenChargers", 0)
+        )
+        available = station_info.get("amountOfAvailableChargers", 0)
         
         # Get zone for energy source info
         station_node = self.nodes.get(station_id, {})
@@ -302,7 +329,16 @@ class ConsiditionAlgorithm:
         has_green_energy = self.zone_has_green_energy(zone)
         
         # AGGRESSIVE MODE: Reduce detour penalties (KWH revenue > completion)
+        headroom = self.get_zone_headroom(zone_id)
         score = detour * 0.5  # Base score with lower penalty
+        score += (1 - (available / total_chargers)) * 10
+        score += (broken_chargers / total_chargers) * 25
+        score += (1 - headroom) * 20  # Prefer zones with spare capacity
+        node_risk = self.node_risk.get(station_id, 1.0)
+        score += max(0, node_risk - 1.0) * 20
+        
+        if headroom > 0.6:
+            score -= headroom * 15  # Reward high-headroom zones
         
         # Adjust based on persona (but be more liberal!)
         if persona == "Stressed" or persona == "DislikesDriving":
@@ -342,11 +378,11 @@ class ConsiditionAlgorithm:
         Returns:
             Boolean indicating if zone has green energy
         """
-        green_sources = {"Hydro", "Nuclear", "Wind", "Solar"}
         energy_sources = zone.get("energySources", [])
         
         for source in energy_sources:
-            if source.get("type") in green_sources:
+            source_type = str(source.get("type", "")).split(".")[-1]
+            if source_type in GREEN_ENERGY_SOURCES:
                 return True
         
         return False
@@ -409,6 +445,102 @@ class ConsiditionAlgorithm:
         charge_amount = min(charge_amount, max_charge_kwh)
         
         return charge_amount
+    
+    def _find_closest_station(self, origin_node):
+        """Pick the nearest operational station from an origin node."""
+        if not origin_node:
+            return None
+        
+        best_station = None
+        best_distance = float('inf')
+        for station_id, station_info in self.charging_stations.items():
+            if not self._station_operational(station_info):
+                continue
+            distance = self.get_shortest_path_distance(origin_node, station_id)
+            if distance is None:
+                continue
+            if distance < best_distance:
+                best_distance = distance
+                best_station = station_id
+        
+        return best_station
+    
+    def _station_operational(self, station_info):
+        """Return True if a station has working chargers to avoid jams."""
+        total = station_info.get("totalAmountOfChargers", 0) or 0
+        broken = station_info.get("totalAmountOfBrokenChargers", 0) or 0
+        available = station_info.get("amountOfAvailableChargers", 0) or 0
+        working = max(0, total - broken)
+        if working <= 0:
+            return False
+        # discourage stations where most chargers are broken and no queue data
+        if available <= 0 and working <= broken:
+            return False
+        return True
+    
+    def _compute_zone_headroom(self):
+        """Estimate how much power each zone can spare."""
+        raw_scores = {}
+        for zone_id, zone in self.zones.items():
+            score = 0.0
+            for source in zone.get("energySources", []) or []:
+                capacity = (
+                    source.get("generationCapacity")
+                    or source.get("producedEnergy")
+                    or 0
+                )
+                source_type = str(source.get("type", "")).split(".")[-1]
+                if source_type in GREEN_ENERGY_SOURCES:
+                    capacity *= 1.1
+                score += capacity
+            for storage in zone.get("energyStorages", []) or []:
+                score += (storage.get("capacityMWh", 0) or 0) * 0.01
+            raw_scores[zone_id] = score
+        
+        max_score = max(raw_scores.values(), default=0.0)
+        if max_score <= 0:
+            self.zone_headroom = {zone_id: 0.0 for zone_id in raw_scores}
+        else:
+            self.zone_headroom = {
+                zone_id: score / max_score for zone_id, score in raw_scores.items()
+            }
+    
+    def get_zone_headroom(self, zone_id):
+        """Return normalized headroom (0..1) for a zone."""
+        if not zone_id:
+            return 0.0
+        return self.zone_headroom.get(zone_id, 0.0)
+    
+    def _assess_node_risk(self, node):
+        """Approximate how fragile a node is (bridges, holes, etc.)."""
+        risk = 1.0
+        tags = node.get("tags") or []
+        node_type = str(node.get("nodeType", "")).lower()
+        name = str(node.get("id", "")).lower()
+        metadata = node.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = {}
+        
+        blob_values = []
+        if isinstance(tags, list):
+            blob_values.extend(str(tag).lower() for tag in tags)
+        if metadata:
+            blob_values.extend(str(val).lower() for val in metadata.values())
+        blob_values.extend([node_type, name])
+        
+        if any(
+            keyword in value
+            for value in blob_values
+            for keyword in RISKY_NODE_KEYWORDS
+        ):
+            risk += 0.5
+        
+        if node.get("isBridge") or metadata.get("isBridge"):
+            risk += 0.5
+        if node.get("isHole") or metadata.get("isHole"):
+            risk += 0.5
+        
+        return risk
     
     def get_path_nodes(self, start_node, end_node):
         """
@@ -494,8 +626,11 @@ class ConsiditionAlgorithm:
                                                        current_tick)
         
         if best_station is None:
-            # No suitable charging station found
-            return None
+            # Fall back to the nearest operational station so the
+            # customer at least charges once.
+            best_station = self._find_closest_station(from_node)
+            if best_station is None:
+                return None
         
         # Validate customer can reach the station
         dist_to_station = self.get_shortest_path_distance(

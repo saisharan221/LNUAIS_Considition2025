@@ -1,0 +1,188 @@
+I am doing a hackathon. Here are the rules:
+How to Play
+From training maps to real challenges
+
+Between November 3rd – 12th, you'll receive four training maps to practice on. Each map comes with starting conditions, and your goal is to guide electric vehicles (EVs) filled with customers to their destinations.
+A map consists of
+
+    Roads and destinations
+    Charging stations (regular & green)
+    Electric vehicles with limited battery capacity
+    Customers with unique "personalities" and preferences
+
+Your task is to design an algorithm that makes the smartest decisions
+
+    Which route to take
+    Where and when to charge
+    How to balance speed, sustainability, and customer satisfaction
+
+Considition 2025 — Player Guide
+
+Quick start, gameplay rules, scoring, personas, weather & energy systems, API examples and tips for running maps locally with the player Docker image. The first map will be: Turbohill with seed: 1760511906534
+
+API to play against: api.considition.com/api/
+Quick overview
+
+    The simulation runs in discrete ticks: 1 tick = 5 minutes. There are 288 ticks per simulated day.
+    You run a map (a match) locally using the player Docker image or via the API. The engine simulates customers, charging, the power grid, and scores your run.
+    Final score = kWh revenue (charging income) + customer completion score.
+    Released maps are validated on the cloud API; locally you can play arbitrary or experimental maps using the Docker player image.
+
+Start playing — quick steps
+1. Pull and run the player Docker image
+
+# pull latest player image
+docker pull considition/considition2025:latest
+
+# You can optionally pass CACHE_ENABLED = false as environment variable if you want to disable cached gamestate
+# run the local player with (example)
+docker run -p 8080:8080 considition/considition2025
+
+2. Inspect map & config (local)
+
+# Map metadata
+GET /api/map-config?mapName={mapName}
+
+# Full map with customers
+GET /api/map?mapName={mapName}
+
+3. Run a game
+
+POST your input to run the simulation (examples can be found in the starterkits):
+
+curl -X POST "http://localhost:8080/api/game" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mapName": "example-map",
+    "playToTick": 288,
+    "ticks": []
+  }'
+
+Cloud API requires authorization: x-api-key: <api-key>. We release official maps through new docker images. Current mapName and seed will be visible through our visualizer (Coming soon).
+Maps, seeds and local testing
+
+The Docker player image lets you run any map locally (including random/experimental maps).
+
+The cloud/API accepts only released maps. For reproducible runs we publish mapName + seed.
+
+If no seed is provided, the engine uses a random seed.
+
+Recommended flow: fetch the map config via /api/map-config, tweak local MapConfigDto values (cloud/wind volatility, offsets, ticks) and re-run locally.
+Gameplay fundamentals
+What happens each tick
+
+    Add new customers per map rules.
+    Process customer state machines — movement, charging, and transitions.
+    Update zones: aggregate charging demand, request energy from the grid, handle brownouts.
+    Compute revenue and customer completion events.
+
+Customer state machine
+
+Typical lifecycle:
+
+Home -> TransitioningToEdge -> Traveling -> TransitioningToNode -> DestinationReached
+                |
+         WaitingForCharger -> Charging -> DoneCharging
+                |
+         FailedToCharge (on supply shortage)
+
+Scoring
+
+Score is composed of two main parts:
+Score breakdown
+
+    kWh revenue — energy sold at charging stations in zones. Brownouts reduce supplied energy and therefore revenue.
+    Customer completion score — points for customers that reach their destination. The scoring depends on persona, time, charging behavior and penalties. The requirement to achieve customer completion score on a customer is that they charge at least once and then reach their destination.
+
+What the API returns
+
+    GameId — this will only be set in cloud environment, only returns a guid if you've beaten your own score.
+    Score — total score (revenue + completion)
+    KwhRevenue — revenue from energy sold
+    CustomerCompletionScore
+    DetailsCustomerScores — per-customer score cards
+    UnlockedAchievements - Id of unlocked achievements (only on games submitted to cloud)
+
+Personas
+
+Each customer has a Persona that influences behavior and scoring:
+
+    CostSensitive — penalizes expensive charging.
+    DislikesDriving — prefers shorter travel time.
+    EcoConscious — rewards greener energy usage.
+
+    Stressed — stronger preference for faster travel.
+    Neutral — baseline behavior.
+
+Your challenge is to find out how each persona acts in different scenarios.
+Weather system
+
+Weather is generated per tick using multi-octave smooth noise and a time-of-day pattern. The Weather object contains:
+
+    CloudCover (0..1) — reduces solar production
+    WindStrength (0..1) — affects wind production
+    WeatherType (enum) — Clear, PartlyCloudy, Cloudy, Overcast, Windy, Storm
+
+Solar output follows a day cycle: no sunlight outside 6:00–18:00 local simulation time. Wind varies with time-of-day and noise. Good weather means that energy grid & zones use green energy which gives more points for the player when charging customers at the station.
+Energy grid & zones
+
+The map is partitioned into zones. Each zone aggregates charging station demand and:
+
+    Requests energy from the simulated market/grid for the current tick.
+    Receives either full supply or a proportionally reduced supply (brownout).
+    Computes revenue for energy actually supplied.
+
+Power grid snapshots compute production from solar/wind/other sources based on weather and time-of-day, factor storage decisions, and return price and availability to zones.
+API endpoints
+API documentation can be found locally at: localhost:8080/openapi/v1.json
+as well as rest client:localhost:8080/scalar
+Get map config (local & cloud)
+
+GET /api/map-config?mapName={mapName}
+
+Get map populated (local & cloud)
+
+GET /api/map?mapName={mapName}
+
+Run game (local & cloud)
+
+POST /api/game
+Body: GameInputDto {
+  mapName: string,
+  playToTick?: int,
+  ticks: TickInputDto[]
+}
+
+Testing tips & troubleshooting
+Recommended experiments
+
+    Run the Docker player to experiment with random maps and MapConfig variations.
+    Use the published map configurations to reproduce official maps.
+    Add local map configs with higher volatility to stress-test the grid.
+
+Common pitfalls
+
+    Brownouts will reduce charging throughput and revenue dramatically.
+    If a map is not released on the cloud, the cloud API may reject your run — use the local player image for experimentation.
+    Customer that havent charged at least once wont return any points
+    If you dont manage your customers, they can run out of juice on the way
+    If you feel like the cache is acting weird, use "CACHE_ENABLED = false" as docker environment variable to disable
+    Getting a 422 from the cloud API? Be sure to check the returned validation message. Also note that you cannot submit PlayToTick to the cloud API.
+
+How to Win
+Final night Challenge
+
+On November 13th, all teams will face the same final map. This map is brand new and kept secret until the start. A warmup map will be released 17:45 with the grand finale starting at 19:15. It contains:
+
+    A unique seed and road layout
+    Charging stations
+    Customers with different personas
+    Limited battery capacity and iteration time.
+
+45 intense minutes
+
+You'll have 45 minutes to play your algorithm against the API. Once the time is up, the map is locked, and the winners are announced live on Twitch.
+
+Spectators can follow live commentators, scoreboards and highlights from different teams. You'll also be able to visualize your own map with our built-in visualizer, watching your vehicles and customers move iteration by iteration.
+
+The team with the highest Total Score on the final map wins Considition 2025!
